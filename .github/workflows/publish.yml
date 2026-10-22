@@ -1,0 +1,30 @@
+name: Publish WiwyAndroidTV APK
+
+on:
+  push:
+    branches: [ota-upload]
+
+permissions:
+  contents: write
+
+concurrency:
+  group: ota-release
+  cancel-in-progress: false
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Publish latest APK
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          test -s WiwyAndroidTV.apk
+          VERSION_CODE="$(sed -n 's/^versionCode=//p' ota-release.txt | head -n 1)"
+          test -n "$VERSION_CODE"
+          VERSION="1.$VERSION_CODE"
+          NOTES="$(printf 'versionCode=%s\n\nWiwyAndroidTV %s. Descarga el APK y acepta la instalación en tu tele.' "$VERSION_CODE" "$VERSION")"
+          gh release delete ultima --yes --cleanup-tag 2>/dev/null || true
+          gh release create ultima WiwyAndroidTV.apk --title "WiwyAndroidTV $VERSION" --notes "$NOTES" --target main --latest
